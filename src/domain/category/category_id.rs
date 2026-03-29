@@ -1,0 +1,57 @@
+use crate::domain::shared::value_object::{InvalidUuidError, UuidVo};
+use std::fmt;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CategoryId(UuidVo);
+
+impl CategoryId {
+    pub fn new() -> Self {
+        Self(UuidVo::new())
+    }
+
+    pub fn from(id: &str) -> Result<Self, InvalidUuidError> {
+        Ok(Self(UuidVo::from(id)?))
+    }
+
+    pub const fn inner(&self) -> &UuidVo {
+        &self.0
+    }
+}
+
+impl Default for CategoryId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl fmt::Display for CategoryId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_create_new_category_id() {
+        let id = CategoryId::new();
+        assert!(!id.to_string().is_empty());
+    }
+
+    #[test]
+    fn should_create_from_valid_string() {
+        let id_str = "4e9e2e4e-0d1a-4a4b-8c0a-5b0e4e4e4e4e";
+        let id = CategoryId::from(id_str).unwrap();
+        assert_eq!(id.to_string(), id_str);
+    }
+
+    #[test]
+    fn should_compare_equal_ids() {
+        let id_str = "4e9e2e4e-0d1a-4a4b-8c0a-5b0e4e4e4e4e";
+        let id1 = CategoryId::from(id_str).unwrap();
+        let id2 = CategoryId::from(id_str).unwrap();
+        assert_eq!(id1, id2);
+    }
+}
