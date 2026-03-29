@@ -12,6 +12,7 @@ pub enum SortDirection {
 }
 
 impl SortDirection {
+    #[must_use] 
     pub const fn as_str(&self) -> &str {
         match self {
             Self::Asc => "asc",
@@ -50,6 +51,7 @@ pub struct SearchResult<E> {
 }
 
 impl<E> SearchResult<E> {
+    #[must_use] 
     pub const fn last_page(&self) -> usize {
         if self.total == 0 {
             return 1;

@@ -7,6 +7,7 @@ pub struct EntityValidationError {
 }
 
 impl EntityValidationError {
+    #[must_use] 
     pub const fn new(notification: Notification) -> Self {
         Self { notification }
     }
@@ -20,6 +21,7 @@ pub struct NotFoundError {
 }
 
 impl NotFoundError {
+    #[must_use] 
     pub fn new(id: &str, entity_name: &str) -> Self {
         Self {
             id: id.to_string(),

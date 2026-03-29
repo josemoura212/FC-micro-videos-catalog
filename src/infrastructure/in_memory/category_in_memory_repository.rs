@@ -21,6 +21,7 @@ pub struct CategoryInMemoryRepository {
 }
 
 impl CategoryInMemoryRepository {
+    #[must_use] 
     pub const fn new() -> Self {
         Self {
             items: Mutex::new(Vec::new()),

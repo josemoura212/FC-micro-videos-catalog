@@ -6,6 +6,7 @@ pub struct Notification {
 }
 
 impl Notification {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             errors: HashMap::new(),
@@ -22,10 +23,12 @@ impl Notification {
         self.errors.insert(key, errors);
     }
 
+    #[must_use] 
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
     }
 
+    #[must_use] 
     pub const fn errors(&self) -> &HashMap<String, Vec<String>> {
         &self.errors
     }
@@ -39,6 +42,7 @@ impl Notification {
         }
     }
 
+    #[must_use] 
     pub fn to_error_messages(&self) -> Vec<String> {
         self.errors
             .iter()

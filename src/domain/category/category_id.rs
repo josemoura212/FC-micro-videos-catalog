@@ -5,14 +5,18 @@ use std::fmt;
 pub struct CategoryId(UuidVo);
 
 impl CategoryId {
+    #[must_use] 
     pub fn new() -> Self {
         Self(UuidVo::new())
     }
 
+    /// # Errors
+    /// Returns `InvalidUuidError` if the string is not a valid UUID.
     pub fn from(id: &str) -> Result<Self, InvalidUuidError> {
         Ok(Self(UuidVo::from(id)?))
     }
 
+    #[must_use] 
     pub const fn inner(&self) -> &UuidVo {
         &self.0
     }

@@ -39,6 +39,7 @@ pub struct CategoryJson {
 }
 
 impl Category {
+    #[must_use] 
     pub fn new(
         category_id: CategoryId,
         name: String,
@@ -58,6 +59,7 @@ impl Category {
         }
     }
 
+    #[must_use] 
     pub fn create(command: CategoryCreateCommand) -> Self {
         let mut category = Self::new(
             command.category_id,
@@ -107,30 +109,37 @@ impl Category {
         }
     }
 
+    #[must_use] 
     pub const fn category_id(&self) -> &CategoryId {
         &self.category_id
     }
 
+    #[must_use] 
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    #[must_use] 
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
     }
 
+    #[must_use] 
     pub const fn is_active(&self) -> bool {
         self.is_active
     }
 
+    #[must_use] 
     pub const fn created_at(&self) -> DateTime<Utc> {
         self.created_at
     }
 
+    #[must_use] 
     pub const fn deleted_at(&self) -> Option<DateTime<Utc>> {
         self.deleted_at
     }
 
+    #[must_use] 
     pub fn to_json(&self) -> CategoryJson {
         CategoryJson {
             category_id: self.category_id.to_string(),

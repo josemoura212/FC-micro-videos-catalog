@@ -8,18 +8,22 @@ pub struct UuidVo {
 }
 
 impl UuidVo {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             id: Uuid::new_v4(),
         }
     }
 
+    /// # Errors
+    /// Returns `InvalidUuidError` if the string is not a valid UUID.
     pub fn from(id: &str) -> Result<Self, InvalidUuidError> {
         let parsed =
             Uuid::parse_str(id).map_err(|_| InvalidUuidError(id.to_string()))?;
         Ok(Self { id: parsed })
     }
 
+    #[must_use] 
     pub const fn id(&self) -> &Uuid {
         &self.id
     }
