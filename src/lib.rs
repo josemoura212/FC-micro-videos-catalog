@@ -25,6 +25,8 @@
     deprecated
 )]
 #![forbid(unsafe_code, deprecated_in_future)]
+#![allow(clippy::trait_duplication_in_bounds)] // false positive com thiserror
 
+pub mod application;
 pub mod domain;
 pub mod infrastructure;
