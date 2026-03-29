@@ -1,0 +1,8 @@
+services:
+  app:
+    volumes:
+      - .:/home/rustdev/app:cached
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined

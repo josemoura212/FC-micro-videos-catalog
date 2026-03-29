@@ -13,7 +13,7 @@ use catalog::infrastructure::testing::es_helpers::EsTestHelper;
 #[tokio::test]
 async fn should_list_all_categories_from_es() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client.clone(), helper.index.clone());
+    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
 
     let cat1 = Category::create(CategoryCreateCommand {
         category_id: CategoryId::new(),
@@ -32,8 +32,7 @@ async fn should_list_all_categories_from_es() {
     repo.insert(&cat1).await.unwrap();
     repo.insert(&cat2).await.unwrap();
 
-    let repo2 = CategoryElasticSearchRepository::new(helper.client.clone(), helper.index.clone());
-    let use_case = ListAllCategoriesUseCase::new(repo2);
+    let use_case = ListAllCategoriesUseCase::new(repo);
     let output = use_case.execute().await.expect("should list");
 
     assert_eq!(output.len(), 2);
@@ -42,7 +41,7 @@ async fn should_list_all_categories_from_es() {
 #[tokio::test]
 async fn should_exclude_soft_deleted_from_list() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client.clone(), helper.index.clone());
+    let mut repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
 
     let cat1 = Category::create(CategoryCreateCommand {
         category_id: CategoryId::new(),
@@ -64,10 +63,8 @@ async fn should_exclude_soft_deleted_from_list() {
     cat2.mark_as_deleted();
     repo.update(&cat2).await.unwrap();
 
-    let mut repo2 =
-        CategoryElasticSearchRepository::new(helper.client.clone(), helper.index.clone());
-    repo2.ignore_soft_deleted();
-    let use_case = ListAllCategoriesUseCase::new(repo2);
+    repo.ignore_soft_deleted();
+    let use_case = ListAllCategoriesUseCase::new(repo);
     let output = use_case.execute().await.expect("should list");
 
     assert_eq!(output.len(), 1);

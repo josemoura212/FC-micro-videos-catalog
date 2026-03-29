@@ -12,7 +12,7 @@ use catalog::infrastructure::testing::es_helpers::EsTestHelper;
 #[tokio::test]
 async fn should_get_category_from_es() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client.clone(), helper.index.clone());
+    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
 
     let category = Category::create(CategoryCreateCommand {
         category_id: CategoryId::new(),
@@ -23,9 +23,7 @@ async fn should_get_category_from_es() {
     });
     repo.insert(&category).await.unwrap();
 
-    let repo2 = CategoryElasticSearchRepository::new(helper.client.clone(), helper.index.clone());
-    let use_case = GetCategoryUseCase::new(repo2);
-
+    let use_case = GetCategoryUseCase::new(repo);
     let output = use_case
         .execute(GetCategoryInput {
             id: category.category_id().to_string(),
@@ -40,7 +38,7 @@ async fn should_get_category_from_es() {
 #[tokio::test]
 async fn should_error_when_not_found_in_es() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client.clone(), helper.index.clone());
+    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
     let use_case = GetCategoryUseCase::new(repo);
 
     let result = use_case

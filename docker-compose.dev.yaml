@@ -1,0 +1,33 @@
+services:
+
+  app:
+    build:
+      dockerfile: Dockerfile.dev
+    command: ./.docker/start.dev.sh
+    ports:
+      - 3002:3000
+    volumes:
+      - .:/home/rustdev/app
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      filebeat_collector: true
+
+  elasticsearch:
+    image: elasticsearch:7.17.7
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms5g -Xmx5g"
+    ports:
+      - 9201:9200
+
+  kibana:
+    image: kibana:7.17.1
+    ports:
+      - 5602:5601
+    depends_on:
+      - elasticsearch

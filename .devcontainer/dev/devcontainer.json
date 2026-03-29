@@ -1,0 +1,29 @@
+{
+    "name": "FC Micro Videos Catalog Rust - Dev",
+    "dockerComposeFile": [
+        "../../docker-compose.dev.yaml",
+        "docker-compose.yml"
+    ],
+    "service": "app",
+    "workspaceFolder": "/home/rustdev/app",
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {},
+        "ghcr.io/devcontainers-contrib/features/zsh-plugins:0": {
+            "plugins": "git git-flow F-Sy-H zsh-autosuggestions zsh-completions",
+            "omzPlugins": "https://github.com/z-shell/F-Sy-H https://github.com/zsh-users/zsh-autosuggestions https://github.com/zsh-users/zsh-completions"
+        },
+        "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "rust-lang.rust-analyzer",
+                "tamasfe.even-better-toml",
+                "serayuzgur.crates",
+                "vadimcn.vscode-lldb",
+                "humao.rest-client"
+            ]
+        }
+    },
+    "postCreateCommand": "git config devcontainers-theme.hide-status 1"
+}

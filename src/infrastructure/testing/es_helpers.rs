@@ -1,6 +1,7 @@
 use elasticsearch::http::transport::{SingleNodeConnectionPool, TransportBuilder};
 use elasticsearch::indices::IndicesCreateParts;
 use elasticsearch::Elasticsearch;
+use testcontainers::core::ImageExt;
 use testcontainers::runners::AsyncRunner;
 use testcontainers::ContainerAsync;
 use testcontainers_modules::elastic_search::ElasticSearch;
@@ -19,6 +20,7 @@ impl EsTestHelper {
     /// Returns error if container fails to start or index creation fails.
     pub async fn start() -> Result<Self, Box<dyn std::error::Error>> {
         let container = ElasticSearch::default()
+            .with_tag("7.17.7")
             .start()
             .await
             .map_err(|e| format!("Failed to start ES container: {e}"))?;
