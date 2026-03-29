@@ -1,0 +1,99 @@
+[package]
+name = "fc-micro-videos-catalog"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "API de catalogo de videos do projeto Codeflix - Rust edition"
+license = "UNLICENSED"
+readme = "README.md"
+keywords = ["codeflix", "catalog", "axum", "elasticsearch"]
+categories = ["web-programming"]
+
+[lib]
+name = "catalog"
+path = "src/lib.rs"
+
+[[bin]]
+name = "catalog-api"
+path = "src/main.rs"
+
+[dependencies]
+# Web framework
+axum = "0.8"
+axum-extra = { version = "0.12", features = ["query"] }
+
+# Middleware / Service
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = [
+    "cors",
+    "trace",
+    "timeout",
+    "compression-gzip",
+    "request-id",
+    "util",
+] }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Elasticsearch (apenas versoes alpha disponiveis)
+elasticsearch = "8.19.0-alpha.1"
+
+# Errors
+thiserror = "2"
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# UUID
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Date/Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Validation
+validator = { version = "0.20", features = ["derive"] }
+
+# Necessario para dyn Trait com async
+async-trait = "0.1"
+
+# HTTP types
+http = "1"
+
+[dev-dependencies]
+# Mocking
+mockall = "0.14"
+
+# Testcontainers
+testcontainers = "0.27"
+testcontainers-modules = { version = "0.15", features = ["elastic_search"] }
+
+# Test utilities
+tokio-test = "0.4"
+tower = { version = "0.5", features = ["util"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+# Permitir excecoes razoaveis
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+multiple_crate_versions = "allow"
+cargo_common_metadata = "allow"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
