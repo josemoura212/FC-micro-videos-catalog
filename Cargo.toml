@@ -40,8 +40,8 @@ tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-# Elasticsearch (apenas versoes alpha disponiveis - pinned exata)
-elasticsearch = "=8.19.0-alpha.1"
+# Elasticsearch (apenas versoes alpha disponiveis)
+elasticsearch = { version = "8.19.0-alpha.1", default-features = true }
 
 # Errors
 thiserror = "2"

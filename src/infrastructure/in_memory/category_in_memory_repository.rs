@@ -18,24 +18,49 @@ pub enum InMemoryError {
 
 pub struct CategoryInMemoryRepository {
     items: Mutex<Vec<Category>>,
+    soft_delete_scope: bool,
 }
 
 impl CategoryInMemoryRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             items: Mutex::new(Vec::new()),
+            soft_delete_scope: false,
         }
     }
 
     fn lock_items(&self) -> Result<std::sync::MutexGuard<'_, Vec<Category>>, InMemoryError> {
         self.items.lock().map_err(|_| InMemoryError::LockPoisoned)
     }
+
+    fn apply_scopes(&self, items: Vec<Category>) -> Vec<Category> {
+        if self.soft_delete_scope {
+            items
+                .into_iter()
+                .filter(|item| item.deleted_at().is_none())
+                .collect()
+        } else {
+            items
+        }
+    }
 }
 
 impl Default for CategoryInMemoryRepository {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl crate::domain::shared::criteria::ScopedRepository for CategoryInMemoryRepository {
+    fn ignore_soft_deleted(&mut self) -> &mut Self {
+        self.soft_delete_scope = true;
+        self
+    }
+
+    fn clear_scopes(&mut self) -> &mut Self {
+        self.soft_delete_scope = false;
+        self
     }
 }
 
@@ -59,11 +84,12 @@ impl ICategoryRepository for CategoryInMemoryRepository {
 
     async fn find_by_id(&self, id: &CategoryId) -> Result<Option<Category>, Self::Error> {
         let items = self.lock_items()?;
-        let found = items
+        let scoped = self.apply_scopes(items.clone());
+        drop(items);
+        let found = scoped
             .iter()
             .find(|item| item.category_id() == id)
             .cloned();
-        drop(items);
         Ok(found)
     }
 
@@ -73,7 +99,9 @@ impl ICategoryRepository for CategoryInMemoryRepository {
         is_active: Option<bool>,
     ) -> Result<Option<Category>, Self::Error> {
         let items = self.lock_items()?;
-        let found = items
+        let scoped = self.apply_scopes(items.clone());
+        drop(items);
+        let found = scoped
             .iter()
             .find(|item| {
                 let id_match = category_id.is_none_or(|id| item.category_id() == id);
@@ -81,7 +109,6 @@ impl ICategoryRepository for CategoryInMemoryRepository {
                 id_match && active_match
             })
             .cloned();
-        drop(items);
         Ok(found)
     }
 
@@ -92,7 +119,9 @@ impl ICategoryRepository for CategoryInMemoryRepository {
         order: Option<&SortOrder>,
     ) -> Result<Vec<Category>, Self::Error> {
         let items = self.lock_items()?;
-        let mut filtered: Vec<Category> = items
+        let scoped = self.apply_scopes(items.clone());
+        drop(items);
+        let mut filtered: Vec<Category> = scoped
             .iter()
             .filter(|item| {
                 let id_match = category_id.is_none_or(|id| item.category_id() == id);
@@ -101,7 +130,6 @@ impl ICategoryRepository for CategoryInMemoryRepository {
             })
             .cloned()
             .collect();
-        drop(items);
 
         if let Some(sort) = order {
             filtered.sort_by(|a, b| {
@@ -122,7 +150,7 @@ impl ICategoryRepository for CategoryInMemoryRepository {
 
     async fn find_all(&self) -> Result<Vec<Category>, Self::Error> {
         let items = self.lock_items()?;
-        let result = items.clone();
+        let result = self.apply_scopes(items.clone());
         drop(items);
         Ok(result)
     }
@@ -132,17 +160,18 @@ impl ICategoryRepository for CategoryInMemoryRepository {
         ids: &[CategoryId],
     ) -> Result<FindByIdsResult<Category>, Self::Error> {
         let items = self.lock_items()?;
+        let scoped = self.apply_scopes(items.clone());
+        drop(items);
         let mut exists = Vec::new();
         let mut not_exists = Vec::new();
 
         for id in ids {
-            if let Some(item) = items.iter().find(|item| item.category_id() == id) {
+            if let Some(item) = scoped.iter().find(|item| item.category_id() == id) {
                 exists.push(item.clone());
             } else {
                 not_exists.push(id.inner().clone());
             }
         }
-        drop(items);
 
         Ok(FindByIdsResult { exists, not_exists })
     }

@@ -1,3 +1,4 @@
+pub mod criteria;
 pub mod entity;
 pub mod errors;
 pub mod notification;
