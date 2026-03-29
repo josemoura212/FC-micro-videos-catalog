@@ -65,6 +65,7 @@ async-trait = "0.1"
 
 # HTTP types
 http = "1"
+url = "2"
 
 [dev-dependencies]
 # Mocking
