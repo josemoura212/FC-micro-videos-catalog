@@ -12,7 +12,7 @@ use catalog::infrastructure::testing::es_helpers::EsTestHelper;
 #[tokio::test]
 async fn should_get_category_from_es() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
 
     let category = Category::create(CategoryCreateCommand {
         category_id: CategoryId::new(),
@@ -38,7 +38,7 @@ async fn should_get_category_from_es() {
 #[tokio::test]
 async fn should_error_when_not_found_in_es() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let use_case = GetCategoryUseCase::new(repo);
 
     let result = use_case

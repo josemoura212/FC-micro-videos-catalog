@@ -10,7 +10,7 @@ use catalog::infrastructure::testing::es_helpers::EsTestHelper;
 #[tokio::test]
 async fn should_create_category_in_es() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let use_case = SaveCategoryUseCase::new(repo);
 
     let category_id = CategoryId::new();
@@ -32,7 +32,7 @@ async fn should_create_category_in_es() {
 #[tokio::test]
 async fn should_update_category_in_es() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let use_case = SaveCategoryUseCase::new(repo);
 
     let category_id = CategoryId::new();

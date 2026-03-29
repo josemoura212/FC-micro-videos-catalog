@@ -22,7 +22,7 @@ fn make_category(name: &str) -> Category {
 #[tokio::test]
 async fn should_insert_and_find_by_id() {
     let helper = EsTestHelper::start().await.expect("ES container should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let category = make_category("Movie");
 
     repo.insert(&category).await.unwrap();
@@ -37,7 +37,7 @@ async fn should_insert_and_find_by_id() {
 #[tokio::test]
 async fn should_return_none_when_not_found() {
     let helper = EsTestHelper::start().await.expect("ES container should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let found = repo.find_by_id(&CategoryId::new()).await.unwrap();
     assert!(found.is_none());
 }
@@ -45,7 +45,7 @@ async fn should_return_none_when_not_found() {
 #[tokio::test]
 async fn should_bulk_insert() {
     let helper = EsTestHelper::start().await.expect("ES container should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let cat1 = make_category("Movie");
     let cat2 = make_category("Documentary");
 
@@ -61,7 +61,7 @@ async fn should_bulk_insert() {
 #[tokio::test]
 async fn should_find_one_by_filter() {
     let helper = EsTestHelper::start().await.expect("ES container should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let category = make_category("Movie");
     repo.insert(&category).await.unwrap();
 
@@ -81,7 +81,7 @@ async fn should_find_one_by_filter() {
 #[tokio::test]
 async fn should_find_by_with_sort() {
     let helper = EsTestHelper::start().await.expect("ES container should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let cat_a = make_category("AAA");
     let cat_b = make_category("BBB");
     repo.insert(&cat_b).await.unwrap();
@@ -101,7 +101,7 @@ async fn should_find_by_with_sort() {
 #[tokio::test]
 async fn should_update_category() {
     let helper = EsTestHelper::start().await.expect("ES container should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let mut category = make_category("Movie");
     repo.insert(&category).await.unwrap();
 
@@ -115,7 +115,7 @@ async fn should_update_category() {
 #[tokio::test]
 async fn should_error_on_update_not_found() {
     let helper = EsTestHelper::start().await.expect("ES container should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let category = make_category("Movie");
     let result = repo.update(&category).await;
     assert!(result.is_err());
@@ -124,7 +124,7 @@ async fn should_error_on_update_not_found() {
 #[tokio::test]
 async fn should_delete_category() {
     let helper = EsTestHelper::start().await.expect("ES container should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let category = make_category("Movie");
     repo.insert(&category).await.unwrap();
 
@@ -137,7 +137,7 @@ async fn should_delete_category() {
 #[tokio::test]
 async fn should_soft_delete_with_scope() {
     let helper = EsTestHelper::start().await.expect("ES container should start");
-    let mut repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let mut repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let mut category = make_category("Movie");
     repo.insert(&category).await.unwrap();
 
@@ -156,7 +156,7 @@ async fn should_soft_delete_with_scope() {
 #[tokio::test]
 async fn should_find_all() {
     let helper = EsTestHelper::start().await.expect("ES container should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let cat1 = make_category("Movie");
     let cat2 = make_category("Documentary");
     repo.insert(&cat1).await.unwrap();
@@ -169,7 +169,7 @@ async fn should_find_all() {
 #[tokio::test]
 async fn should_exists_by_id() {
     let helper = EsTestHelper::start().await.expect("ES container should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let category = make_category("Movie");
     repo.insert(&category).await.unwrap();
 

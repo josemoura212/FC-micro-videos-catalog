@@ -1,11 +1,11 @@
 use elasticsearch::http::transport::{SingleNodeConnectionPool, TransportBuilder};
 use elasticsearch::indices::IndicesCreateParts;
 use elasticsearch::Elasticsearch;
-use testcontainers::core::ImageExt;
+use testcontainers::core::{ImageExt, Mount};
 use testcontainers::runners::AsyncRunner;
 use testcontainers::ContainerAsync;
 use testcontainers_modules::elastic_search::ElasticSearch;
-use tokio::sync::OnceCell;
+use tokio::sync::{OnceCell, Semaphore, SemaphorePermit};
 use url::Url;
 
 use crate::infrastructure::elasticsearch::es_mapping::es_mapping;
@@ -16,12 +16,15 @@ struct SharedEsContainer {
 }
 
 static SHARED_ES: OnceCell<SharedEsContainer> = OnceCell::const_new();
+static ES_CONCURRENCY: Semaphore = Semaphore::const_new(1);
 
 async fn shared_es() -> &'static SharedEsContainer {
     SHARED_ES
         .get_or_init(|| async {
             let container = ElasticSearch::default()
                 .with_tag("7.17.7")
+                .with_env_var("ES_JAVA_OPTS", "-Xms1g -Xmx1g")
+                .with_mount(Mount::tmpfs_mount("/usr/share/elasticsearch/data"))
                 .start()
                 .await
                 .expect("Failed to start ES container");
@@ -48,14 +51,30 @@ async fn shared_es() -> &'static SharedEsContainer {
 }
 
 pub struct EsTestHelper {
-    pub client: Elasticsearch,
-    pub index: String,
+    client: Elasticsearch,
+    index: String,
+    _permit: SemaphorePermit<'static>,
 }
 
 impl EsTestHelper {
+    #[must_use]
+    pub fn client(&self) -> Elasticsearch {
+        self.client.clone()
+    }
+
+    #[must_use]
+    pub fn index(&self) -> String {
+        self.index.clone()
+    }
+
     /// # Errors
     /// Returns error if container fails to start or index creation fails.
     pub async fn start() -> Result<Self, Box<dyn std::error::Error>> {
+        let permit = ES_CONCURRENCY
+            .acquire()
+            .await
+            .map_err(|e| format!("Failed to acquire semaphore: {e}"))?;
+
         let shared = shared_es().await;
         let client = shared.client.clone();
         let index = format!("test_es_{}", uuid::Uuid::new_v4().simple());
@@ -68,6 +87,10 @@ impl EsTestHelper {
             .await
             .map_err(|e| format!("Failed to create index: {e}"))?;
 
-        Ok(Self { client, index })
+        Ok(Self {
+            client,
+            index,
+            _permit: permit,
+        })
     }
 }

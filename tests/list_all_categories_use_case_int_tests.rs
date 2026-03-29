@@ -13,7 +13,7 @@ use catalog::infrastructure::testing::es_helpers::EsTestHelper;
 #[tokio::test]
 async fn should_list_all_categories_from_es() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
 
     let cat1 = Category::create(CategoryCreateCommand {
         category_id: CategoryId::new(),
@@ -41,7 +41,7 @@ async fn should_list_all_categories_from_es() {
 #[tokio::test]
 async fn should_exclude_soft_deleted_from_list() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let mut repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let mut repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
 
     let cat1 = Category::create(CategoryCreateCommand {
         category_id: CategoryId::new(),

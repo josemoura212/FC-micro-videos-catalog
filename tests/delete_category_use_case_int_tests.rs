@@ -12,7 +12,7 @@ use catalog::infrastructure::testing::es_helpers::EsTestHelper;
 #[tokio::test]
 async fn should_soft_delete_category_in_es() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
 
     let category = Category::create(CategoryCreateCommand {
         category_id: CategoryId::new(),
@@ -35,7 +35,7 @@ async fn should_soft_delete_category_in_es() {
 #[tokio::test]
 async fn should_error_when_deleting_not_found() {
     let helper = EsTestHelper::start().await.expect("ES should start");
-    let repo = CategoryElasticSearchRepository::new(helper.client, helper.index);
+    let repo = CategoryElasticSearchRepository::new(helper.client(), helper.index());
     let use_case = DeleteCategoryUseCase::new(repo);
 
     let result = use_case
