@@ -36,4 +36,12 @@ pub trait ICategoryRepository: Send + Sync {
     ) -> Result<ExistsByIdResult, Self::Error>;
     async fn update(&self, entity: &Category) -> Result<(), Self::Error>;
     async fn delete(&self, id: &CategoryId) -> Result<(), Self::Error>;
+    async fn has_only_one_activate_in_related(
+        &self,
+        id: &CategoryId,
+    ) -> Result<bool, Self::Error>;
+    async fn has_only_one_not_deleted_in_related(
+        &self,
+        id: &CategoryId,
+    ) -> Result<bool, Self::Error>;
 }

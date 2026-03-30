@@ -381,22 +381,52 @@ impl ICategoryRepository for CategoryElasticSearchRepository {
 
     async fn update(&self, entity: &Category) -> Result<(), Self::Error> {
         let doc = CategoryElasticSearchMapper::to_document(entity);
-        let params = serde_json::to_value(&doc)
+        let mut params = serde_json::to_value(&doc)
             .map_err(|e| EsRepositoryError::Mapping(e.to_string()))?;
 
-        let script = r"
-            ctx._source.category_name = params.category_name;
-            ctx._source.category_description = params.category_description;
-            ctx._source.is_active = params.is_active;
-            ctx._source.created_at = params.created_at;
-            ctx._source.deleted_at = params.deleted_at;
-        ";
+        params["category_id"] = json!(entity.category_id().to_string());
+        params["is_deleted"] = json!(entity.deleted_at().is_some());
+
+        let script = r#"
+            if (ctx._source.containsKey('categories')) {
+                for(item in ctx._source.categories) {
+                    if (item.category_id == params.category_id) {
+                        item.category_name = params.category_name;
+                        item.is_active = params.is_active;
+                        item.deleted_at = params.deleted_at;
+                        item.is_deleted = params.is_deleted;
+                    }
+                }
+            } else {
+                ctx._source.category_name = params.category_name;
+                ctx._source.category_description = params.category_description;
+                ctx._source.is_active = params.is_active;
+                ctx._source.created_at = params.created_at;
+                ctx._source.deleted_at = params.deleted_at;
+            }
+        "#;
+
+        let query = json!({
+            "bool": {
+                "should": [
+                    {"match": {"_id": entity.category_id().to_string()}},
+                    {
+                        "nested": {
+                            "path": "categories",
+                            "query": {
+                                "match": {"categories.category_id": entity.category_id().to_string()}
+                            }
+                        }
+                    }
+                ]
+            }
+        });
 
         let response = self
             .client
             .update_by_query(UpdateByQueryParts::Index(&[&self.index]))
             .body(json!({
-                "query": {"match": {"_id": entity.category_id().to_string()}},
+                "query": query,
                 "script": {
                     "source": script,
                     "params": params
@@ -421,6 +451,96 @@ impl ICategoryRepository for CategoryElasticSearchRepository {
         }
 
         Ok(())
+    }
+
+    async fn has_only_one_activate_in_related(
+        &self,
+        id: &CategoryId,
+    ) -> Result<bool, Self::Error> {
+        let query = json!({
+            "bool": {
+                "must": [
+                    {"match": {"type": "Genre"}},
+                    {
+                        "nested": {
+                            "path": "categories",
+                            "query": {
+                                "bool": {
+                                    "must": [
+                                        {"match": {"categories.category_id": id.to_string()}},
+                                        {"match": {"categories.is_active": true}}
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ],
+                "must_not": [
+                    {"match": {"categories__is_active": true}}
+                ]
+            }
+        });
+
+        let response = self
+            .client
+            .search(SearchParts::Index(&[&self.index]))
+            .body(json!({"query": query, "_source": false}))
+            .send()
+            .await
+            .map_err(|e| EsRepositoryError::Elasticsearch(e.to_string()))?;
+
+        let body: Value = response
+            .json()
+            .await
+            .map_err(|e| EsRepositoryError::Elasticsearch(e.to_string()))?;
+
+        let total = body["hits"]["total"]["value"].as_u64().unwrap_or(0);
+        Ok(total >= 1)
+    }
+
+    async fn has_only_one_not_deleted_in_related(
+        &self,
+        id: &CategoryId,
+    ) -> Result<bool, Self::Error> {
+        let query = json!({
+            "bool": {
+                "must": [
+                    {"match": {"type": "Genre"}},
+                    {
+                        "nested": {
+                            "path": "categories",
+                            "query": {
+                                "bool": {
+                                    "must": [
+                                        {"match": {"categories.category_id": id.to_string()}},
+                                        {"match": {"categories.is_deleted": false}}
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ],
+                "must_not": [
+                    {"match": {"categories__is_deleted": false}}
+                ]
+            }
+        });
+
+        let response = self
+            .client
+            .search(SearchParts::Index(&[&self.index]))
+            .body(json!({"query": query, "_source": false}))
+            .send()
+            .await
+            .map_err(|e| EsRepositoryError::Elasticsearch(e.to_string()))?;
+
+        let body: Value = response
+            .json()
+            .await
+            .map_err(|e| EsRepositoryError::Elasticsearch(e.to_string()))?;
+
+        let total = body["hits"]["total"]["value"].as_u64().unwrap_or(0);
+        Ok(total >= 1)
     }
 
     async fn delete(&self, id: &CategoryId) -> Result<(), Self::Error> {

@@ -5,6 +5,7 @@ use crate::domain::category::category_id::CategoryId;
 use crate::domain::category::category_repository::ICategoryRepository;
 use crate::domain::shared::entity::Entity;
 use crate::domain::shared::errors::EntityValidationError;
+use crate::domain::shared::notification::Notification;
 
 #[derive(Debug, Clone)]
 pub struct SaveCategoryInput {
@@ -95,6 +96,22 @@ impl<R: ICategoryRepository> SaveCategoryUseCase<R> {
         input: SaveCategoryInput,
         mut category: Category,
     ) -> Result<SaveCategoryOutput, SaveCategoryError<R::Error>> {
+        if !input.is_active {
+            let has_only_one = self
+                .repo
+                .has_only_one_activate_in_related(category.category_id())
+                .await
+                .map_err(SaveCategoryError::Repository)?;
+            if has_only_one {
+                let mut notification = Notification::new();
+                notification.add_error(
+                    "At least one category must be active in related.",
+                    Some("is_active"),
+                );
+                return Err(EntityValidationError::new(notification).into());
+            }
+        }
+
         category.change_name(input.name);
         category.change_description(input.description);
 

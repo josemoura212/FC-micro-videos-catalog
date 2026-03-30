@@ -13,6 +13,8 @@ pub enum DeleteCategoryError<E: std::error::Error> {
     NotFound(#[from] NotFoundError),
     #[error("invalid category id: {0}")]
     InvalidId(String),
+    #[error("related constraint: {0}")]
+    RelatedConstraint(String),
     #[error(transparent)]
     Repository(E),
 }
@@ -42,6 +44,17 @@ impl<R: ICategoryRepository> DeleteCategoryUseCase<R> {
             .await
             .map_err(DeleteCategoryError::Repository)?
             .ok_or_else(|| NotFoundError::new(&input.id, "Category"))?;
+
+        let has_only_one = self
+            .repo
+            .has_only_one_not_deleted_in_related(&category_id)
+            .await
+            .map_err(DeleteCategoryError::Repository)?;
+        if has_only_one {
+            return Err(DeleteCategoryError::RelatedConstraint(
+                "At least one category must be present in related.".to_string(),
+            ));
+        }
 
         category.mark_as_deleted();
 

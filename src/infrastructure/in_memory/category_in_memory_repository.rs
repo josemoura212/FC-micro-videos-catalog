@@ -216,6 +216,20 @@ impl ICategoryRepository for CategoryInMemoryRepository {
         drop(items);
         Ok(())
     }
+
+    async fn has_only_one_activate_in_related(
+        &self,
+        _id: &CategoryId,
+    ) -> Result<bool, Self::Error> {
+        Ok(false)
+    }
+
+    async fn has_only_one_not_deleted_in_related(
+        &self,
+        _id: &CategoryId,
+    ) -> Result<bool, Self::Error> {
+        Ok(false)
+    }
 }
 
 #[cfg(test)]
