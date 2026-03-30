@@ -10,6 +10,8 @@ pub fn es_mapping() -> Value {
                 "type": { "type": "keyword" },
                 "category_name": { "type": "keyword" },
                 "category_description": { "type": "text" },
+                "cast_member_name": { "type": "keyword" },
+                "cast_member_type": { "type": "integer" },
                 "is_active": { "type": "boolean" },
                 "created_at": { "type": "date" },
                 "deleted_at": { "type": "date" }
