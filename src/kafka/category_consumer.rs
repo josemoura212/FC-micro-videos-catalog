@@ -33,17 +33,17 @@ pub enum CategoryConsumerError {
     MissingField,
 }
 
-pub struct CategoryConsumer<R: ICategoryRepository> {
-    save_use_case: SaveCategoryUseCase<R>,
-    delete_use_case: DeleteCategoryUseCase<R>,
+pub struct CategoryConsumer<SR: ICategoryRepository, DR: ICategoryRepository = SR> {
+    save_use_case: SaveCategoryUseCase<SR>,
+    delete_use_case: DeleteCategoryUseCase<DR>,
 }
 
-impl<R: ICategoryRepository + Clone> CategoryConsumer<R> {
+impl<SR: ICategoryRepository, DR: ICategoryRepository> CategoryConsumer<SR, DR> {
     #[must_use]
-    pub fn new(repo: R) -> Self {
+    pub fn new(save_repo: SR, delete_repo: DR) -> Self {
         Self {
-            save_use_case: SaveCategoryUseCase::new(repo.clone()),
-            delete_use_case: DeleteCategoryUseCase::new(repo),
+            save_use_case: SaveCategoryUseCase::new(save_repo),
+            delete_use_case: DeleteCategoryUseCase::new(delete_repo),
         }
     }
 
@@ -119,7 +119,7 @@ mod tests {
     use crate::infrastructure::in_memory::category_in_memory_repository::CategoryInMemoryRepository;
 
     fn make_consumer() -> CategoryConsumer<CategoryInMemoryRepository> {
-        CategoryConsumer::new(CategoryInMemoryRepository::new())
+        CategoryConsumer::new(CategoryInMemoryRepository::new(), CategoryInMemoryRepository::new())
     }
 
     #[tokio::test]

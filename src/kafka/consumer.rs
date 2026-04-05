@@ -1,4 +1,74 @@
+use rdkafka::config::ClientConfig;
+use rdkafka::consumer::{Consumer, StreamConsumer};
+use rdkafka::message::Message;
 use std::fmt;
+use tracing::{error, info, warn};
+
+use super::category_consumer::{CategoryConsumer, CategoryConsumerError};
+use crate::domain::category::category_repository::ICategoryRepository;
+
+/// Builds an rdkafka `StreamConsumer` for CDC consumption.
+///
+/// # Errors
+/// Returns error if Kafka configuration is invalid.
+pub fn build_consumer(
+    brokers: &str,
+    group_id: &str,
+) -> Result<StreamConsumer, rdkafka::error::KafkaError> {
+    ClientConfig::new()
+        .set("bootstrap.servers", brokers)
+        .set("group.id", group_id)
+        .set("enable.auto.commit", "true")
+        .set("auto.offset.reset", "earliest")
+        .set("session.timeout.ms", "10000")
+        .create()
+}
+
+/// Runs the category CDC consumer loop.
+/// Subscribes to `topic` and dispatches each message to `CategoryConsumer`.
+///
+/// # Errors
+/// Returns error if Kafka subscription fails.
+pub async fn run_category_consumer<
+    SR: ICategoryRepository + Send + Sync + 'static,
+    DR: ICategoryRepository + Send + Sync + 'static,
+>(
+    consumer: StreamConsumer,
+    topic: &str,
+    category_consumer: CategoryConsumer<SR, DR>,
+) -> Result<(), rdkafka::error::KafkaError> {
+    consumer.subscribe(&[topic])?;
+    info!("[KafkaConsumer] Subscribed to topic: {topic}");
+
+    loop {
+        match consumer.recv().await {
+            Err(e) => {
+                warn!("[KafkaConsumer] Kafka error: {e}");
+            }
+            Ok(msg) => {
+                let payload = msg.payload();
+                match category_consumer.handle(payload).await {
+                    Ok(()) => {
+                        info!(
+                            "[KafkaConsumer] Processed — topic: {}, partition: {}, offset: {}",
+                            msg.topic(),
+                            msg.partition(),
+                            msg.offset()
+                        );
+                    }
+                    Err(CategoryConsumerError::Deserialization(e)) => {
+                        error!("[KafkaConsumer] Deserialization error (skip): {e}");
+                    }
+                    Err(e) => {
+                        error!("[KafkaConsumer] Consumer error: {e}");
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─── Error type (BurntSushi pattern: pub struct + private enum) ──────────────
 
 #[derive(Debug)]
 pub struct ConsumerError {

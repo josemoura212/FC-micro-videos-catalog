@@ -27,6 +27,7 @@ pub enum EsRepositoryError {
     Mapping(String),
 }
 
+#[derive(Clone)]
 pub struct CategoryElasticSearchRepository {
     client: Elasticsearch,
     index: String,
