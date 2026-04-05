@@ -28,6 +28,8 @@
 #![allow(clippy::trait_duplication_in_bounds)] // false positive com thiserror
 #![cfg_attr(test, allow(clippy::unwrap_used))] // unwrap ok em testes
 
+pub mod api;
 pub mod application;
+pub mod config;
 pub mod domain;
 pub mod infrastructure;
