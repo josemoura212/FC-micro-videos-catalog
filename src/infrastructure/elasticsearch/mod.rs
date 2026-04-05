@@ -5,3 +5,5 @@ pub mod category_mapper;
 pub mod es_mapping;
 pub mod genre_es_repository;
 pub mod genre_mapper;
+pub mod video_es_repository;
+pub mod video_mapper;
