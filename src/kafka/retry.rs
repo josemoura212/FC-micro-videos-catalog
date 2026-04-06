@@ -1,6 +1,8 @@
+use std::future::Future;
+use std::time::Duration;
+
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
-use std::time::Duration;
 use tracing::error;
 
 /// Classifica se um erro deve ser retriado ou enviado direto para a DLQ.
@@ -82,7 +84,7 @@ pub async fn with_retry_and_dlq<F, Fut, E>(
 ) -> Result<(), String>
 where
     F: Fn() -> Fut,
-    Fut: std::future::Future<Output = Result<(), E>>,
+    Fut: Future<Output = Result<(), E>>,
     E: std::fmt::Display,
 {
     let result = handler().await;
