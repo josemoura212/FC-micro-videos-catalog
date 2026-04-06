@@ -43,7 +43,13 @@ async fn run_consumer_for(
 
     tokio::time::timeout(
         duration,
-        catalog::kafka::consumer::run_category_consumer(stream_consumer, topic, category_consumer),
+        catalog::kafka::consumer::run_category_consumer(
+            stream_consumer,
+            topic,
+            brokers,
+            category_consumer,
+            catalog::kafka::retry::RetryConfig::default(),
+        ),
     )
     .await
     .ok(); // timeout is expected — we stop after duration
