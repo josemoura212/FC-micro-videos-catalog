@@ -2,9 +2,11 @@ use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::message::Message;
 use std::fmt;
+use std::sync::Arc;
 use tracing::{error, info, warn};
 
 use super::category_consumer::{CategoryConsumer, CategoryConsumerError};
+use super::retry::{with_retry_and_dlq, ErrorKind, RetryConfig};
 use crate::domain::category::category_repository::ICategoryRepository;
 
 /// Builds an rdkafka `StreamConsumer` for CDC consumption.
@@ -24,8 +26,23 @@ pub fn build_consumer(
         .create()
 }
 
-/// Runs the category CDC consumer loop.
+/// Classifica erros do consumer em retriáveis ou não-retriáveis.
+fn classify_error(err: &CategoryConsumerError) -> ErrorKind {
+    match err {
+        // Dados inválidos → não faz sentido retentar, vai para DLQ
+        CategoryConsumerError::Deserialization(_)
+        | CategoryConsumerError::InvalidDate(_)
+        | CategoryConsumerError::MissingField => ErrorKind::NonRetriable,
+        // Falhas de use case (ex: ES fora do ar) → retriável
+        CategoryConsumerError::UseCase(_) => ErrorKind::Retriable,
+    }
+}
+
+/// Runs the category CDC consumer loop with retry and dead-letter queue.
 /// Subscribes to `topic` and dispatches each message to `CategoryConsumer`.
+///
+/// - Erros de desserialização/validação → DLQ imediato
+/// - Erros de infraestrutura → retry com backoff [1s, 3s, 9s]
 ///
 /// # Errors
 /// Returns error if Kafka subscription fails.
@@ -35,10 +52,14 @@ pub async fn run_category_consumer<
 >(
     consumer: StreamConsumer,
     topic: &str,
+    brokers: &str,
     category_consumer: CategoryConsumer<SR, DR>,
+    retry_config: RetryConfig,
 ) -> Result<(), rdkafka::error::KafkaError> {
     consumer.subscribe(&[topic])?;
     info!("[KafkaConsumer] Subscribed to topic: {topic}");
+
+    let category_consumer = Arc::new(category_consumer);
 
     loop {
         match consumer.recv().await {
@@ -46,8 +67,29 @@ pub async fn run_category_consumer<
                 warn!("[KafkaConsumer] Kafka error: {e}");
             }
             Ok(msg) => {
-                let payload = msg.payload();
-                match category_consumer.handle(payload).await {
+                let payload_bytes = msg.payload().unwrap_or(&[]);
+                let payload_owned = payload_bytes.to_vec();
+                let topic_str = msg.topic().to_string();
+                let handler = Arc::clone(&category_consumer);
+
+                let result = with_retry_and_dlq(
+                    || {
+                        let payload = payload_owned.clone();
+                        let h = Arc::clone(&handler);
+                        async move {
+                            h.handle(if payload.is_empty() { None } else { Some(&payload) })
+                                .await
+                        }
+                    },
+                    classify_error,
+                    &payload_owned,
+                    &topic_str,
+                    brokers,
+                    &retry_config,
+                )
+                .await;
+
+                match result {
                     Ok(()) => {
                         info!(
                             "[KafkaConsumer] Processed — topic: {}, partition: {}, offset: {}",
@@ -56,11 +98,8 @@ pub async fn run_category_consumer<
                             msg.offset()
                         );
                     }
-                    Err(CategoryConsumerError::Deserialization(e)) => {
-                        error!("[KafkaConsumer] Deserialization error (skip): {e}");
-                    }
                     Err(e) => {
-                        error!("[KafkaConsumer] Consumer error: {e}");
+                        error!("[KafkaConsumer] Failed to send to DLQ: {e}");
                     }
                 }
             }
