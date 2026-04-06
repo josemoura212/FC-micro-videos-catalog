@@ -10,14 +10,19 @@ use crate::domain::category::category_repository::ICategoryRepository;
 use super::cdc::{CdcOperation, CdcPayload};
 
 /// Represents the MySQL category row captured via Debezium CDC.
+/// `name`, `is_active` and `created_at` are optional via `serde(default)` because
+/// delete events only carry `category_id` in the `before` field.
 #[derive(Debug, Clone, Deserialize)]
 pub struct CategoryCdcData {
     pub category_id: String,
+    #[serde(default)]
     pub name: String,
     pub description: Option<String>,
     /// MySQL TINYINT(1) — comes as 0 or 1 in CDC payloads
+    #[serde(default)]
     pub is_active: u8,
     /// ISO 8601 timestamp string
+    #[serde(default)]
     pub created_at: String,
 }
 

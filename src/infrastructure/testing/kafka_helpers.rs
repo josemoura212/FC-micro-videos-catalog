@@ -3,6 +3,7 @@ use rdkafka::client::DefaultClientContext;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use std::time::Duration;
+use testcontainers::core::ImageExt;
 use testcontainers::runners::AsyncRunner;
 use testcontainers::ContainerAsync;
 use testcontainers_modules::kafka::Kafka;
@@ -20,6 +21,7 @@ async fn shared_kafka() -> &'static SharedKafkaContainer {
     SHARED_KAFKA
         .get_or_init(|| async {
             let container = Kafka::default()
+                .with_env_var("KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS", "0")
                 .start()
                 .await
                 .expect("Failed to start Kafka container");
